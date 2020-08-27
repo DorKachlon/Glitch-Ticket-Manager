@@ -47,6 +47,26 @@ app.get("/api/tickets", async (req, res) => {
     }
 });
 
+app.get("/api/tickets/done", async (req, res) => {
+    const content = await fs.readFile(filePath);
+    const arr = JSON.parse(content);
+    const filterArr = arr.filter((obj) => obj.done);
+    res.send(filterArr);
+});
+
+app.get("/api/tickets/undone", async (req, res) => {
+    const content = await fs.readFile(filePath);
+    const arr = JSON.parse(content);
+    const filterArr = arr.filter((obj) => !obj.done);
+    res.send(filterArr);
+});
+app.get("/api/tickets/deleted", async (req, res) => {
+    const content = await fs.readFile(filePath);
+    const arr = JSON.parse(content);
+    const filterArr = arr.filter((obj) => obj.delete);
+    res.send(filterArr);
+});
+
 app.post("/api/tickets/:ticketId/done", async (req, res) => {
     const content = await fs.readFile(filePath);
     const arr = JSON.parse(content);
@@ -65,18 +85,21 @@ app.post("/api/tickets/:ticketId/undone", async (req, res) => {
     res.send({ updated: true });
 });
 
-app.get("/api/tickets/done", async (req, res) => {
+app.post("/api/tickets/:ticketId/delete", async (req, res) => {
     const content = await fs.readFile(filePath);
     const arr = JSON.parse(content);
-    const filterArr = arr.filter((obj) => obj.done);
-    res.send(filterArr);
+    const index = arr.findIndex((obj) => obj.id === req.params.ticketId);
+    arr[index].delete = true;
+    await fs.writeFile(filePath, JSON.stringify(arr));
+    res.send({ updated: true });
 });
-
-app.get("/api/tickets/undone", async (req, res) => {
+app.post("/api/tickets/:ticketId/undelete", async (req, res) => {
     const content = await fs.readFile(filePath);
     const arr = JSON.parse(content);
-    const filterArr = arr.filter((obj) => !obj.done);
-    res.send(filterArr);
+    const index = arr.findIndex((obj) => obj.id === req.params.ticketId);
+    arr[index].delete = false;
+    await fs.writeFile(filePath, JSON.stringify(arr));
+    res.send({ updated: true });
 });
 
 let port;

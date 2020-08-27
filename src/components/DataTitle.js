@@ -1,5 +1,5 @@
 import React from 'react';
-import '../dataTitle.css';
+import '../style/dataTitle.css';
 
 export default function DataTitle({
   ticketsArray,
@@ -15,10 +15,7 @@ export default function DataTitle({
           <span>(</span>
           <span id="hideTicketsCounter">{hideTicketsCounter}</span>
           <span> hidden tickets - </span>
-          <button
-            id="restoreHideTickets"
-            onClick={() => restore()}
-          >
+          <button id="restoreHideTickets" onClick={() => restore()}>
             restore
           </button>
           <span>)</span>

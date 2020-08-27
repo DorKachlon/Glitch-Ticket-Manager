@@ -1,81 +1,27 @@
 import React, { useEffect, useState } from 'react';
-import '../App.css';
+import '../style/App.css';
 import axios from 'axios';
-import { makeStyles } from '@material-ui/core/styles';
 import clsx from 'clsx';
 import Swal from 'sweetalert2';
 import Ticket from './Ticket';
 import HeaderBar from './HeaderBar';
 import SideNavbar from './SideNavbar';
-
-const drawerWidth = 240;
-
-const useStyles = makeStyles((theme) => ({
-  root: {
-    display: 'flex',
-  },
-  appBar: {
-    transition: theme.transitions.create(['margin', 'width'], {
-      easing: theme.transitions.easing.sharp,
-      duration: theme.transitions.duration.leavingScreen,
-    }),
-  },
-  appBarShift: {
-    width: `calc(100% - ${drawerWidth}px)`,
-    marginLeft: drawerWidth,
-    transition: theme.transitions.create(['margin', 'width'], {
-      easing: theme.transitions.easing.easeOut,
-      duration: theme.transitions.duration.enteringScreen,
-    }),
-  },
-  menuButton: {
-    marginRight: theme.spacing(2),
-  },
-  hide: {
-    display: 'none',
-  },
-  drawer: {
-    width: drawerWidth,
-    flexShrink: 0,
-  },
-  drawerPaper: {
-    width: drawerWidth,
-  },
-  drawerHeader: {
-    display: 'flex',
-    alignItems: 'center',
-    padding: theme.spacing(0, 1),
-    // necessary for content to be below app bar
-    ...theme.mixins.toolbar,
-    justifyContent: 'flex-end',
-  },
-  content: {
-    flexGrow: 1,
-    padding: theme.spacing(3),
-    transition: theme.transitions.create('margin', {
-      easing: theme.transitions.easing.sharp,
-      duration: theme.transitions.duration.leavingScreen,
-    }),
-    marginLeft: -drawerWidth,
-  },
-  contentShift: {
-    transition: theme.transitions.create('margin', {
-      easing: theme.transitions.easing.easeOut,
-      duration: theme.transitions.duration.enteringScreen,
-    }),
-    marginLeft: 0,
-  },
-}));
+import useStyles from '../useStyles';
 
 function App() {
   const [ticketsArray, setTicketsArray] = useState([]);
   const [hideTicketsCounter, setHideTicketsCounter] = useState(0);
   const [call, setCall] = useState(0);
-  const classes = useStyles();
   const [open, setOpen] = useState(false);
   const [valueOfNav, setValueOfNav] = useState(1);
   const [selectValue, setSelectValue] = useState('searchText');
+  const [hideTicketsArray, setHideTicketsArray] = useState([]);
+  const classes = useStyles();
 
+  function restore() {
+    setHideTicketsCounter(0);
+    setCall(call + 1);
+  }
   async function loadTicketsArray2(inputValue) {
     if (inputValue) {
       try {
@@ -89,7 +35,7 @@ function App() {
         Swal.fire({
           icon: 'error',
           title: 'Oops...',
-          text: { e },
+          text: `${e.message}`,
         });
       }
       setValueOfNav(6);
@@ -102,69 +48,52 @@ function App() {
         Swal.fire({
           icon: 'error',
           title: 'Oops...',
-          text: { e },
+          text: `${e.message}`,
         });
       }
     }
   }
-
-  useEffect(() => {
-    async function loadTicketsArray(inputValue) {
-      if (inputValue) {
-        try {
-          const { data } = await axios.get(
-            `/api/tickets?searchText=${inputValue.replace(
-              ' ',
-              '+',
-            )}`,
-          );
-          await setTicketsArray(data);
-        } catch (e) {
-          Swal.fire({
-            icon: 'error',
-            title: 'Oops...',
-            text: { e },
-          });
+  async function loadTicketsArray() {
+    try {
+      switch (valueOfNav) {
+        case 1: {
+          const { data } = await axios.get('/api/tickets');
+          setTicketsArray(data.filter((obj) => !obj.delete));
+          break;
         }
-      } else {
-        try {
-          switch (valueOfNav) {
-            case 1: {
-              const { data } = await axios.get('/api/tickets');
-              setTicketsArray(data);
-              break;
-            }
-            case 2: {
-              const { data } = await axios.get(
-                '/api/tickets/done',
-              );
-              setTicketsArray(data);
-              break;
-            }
-            case 3: {
-              const { data } = await axios.get(
-                '/api/tickets/undone',
-              );
-              setTicketsArray(data);
-              break;
-            }
-            default: {
-              const { data } = await axios.get('/api/tickets');
-              setTicketsArray(data);
-              break;
-            }
-          }
-        } catch (e) {
-          Swal.fire({
-            icon: 'error',
-            title: 'Oops...',
-            text: { e },
-          });
+        case 2: {
+          const { data } = await axios.get('/api/tickets/done');
+          setTicketsArray(data.filter((obj) => !obj.delete));
+          break;
+        }
+        case 3: {
+          const { data } = await axios.get('/api/tickets/undone');
+          setTicketsArray(data.filter((obj) => !obj.delete));
+          break;
+        }
+        case 5: {
+          const { data } = await axios.get('/api/tickets/deleted');
+          setTicketsArray(data);
+          break;
+        }
+        default: {
+          const { data } = await axios.get('/api/tickets');
+          setTicketsArray(data);
+          break;
         }
       }
-      setHideTicketsCounter(0);
+    } catch (e) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Oops...',
+        text: `${e.message}`,
+      });
     }
-    if (valueOfNav !== 6) loadTicketsArray();
+    restore();
+  }
+  useEffect(() => {
+    if ([1, 2, 3, 5].includes(valueOfNav)) loadTicketsArray();
+    if (valueOfNav === 4) setTicketsArray(hideTicketsArray);
   }, [valueOfNav]);
 
   const handleDrawerOpen = () => {
@@ -175,23 +104,30 @@ function App() {
     setOpen(false);
   };
 
-  function restore() {
-    setHideTicketsCounter(0);
-    setCall(call + 1);
-  }
   async function clickedDoneOrUndone(id, doneOrUndone) {
     try {
       await axios.post(`/api/tickets/${id}/${doneOrUndone}`);
-      loadTicketsArray2();
+      loadTicketsArray();
     } catch (e) {
       Swal.fire({
         icon: 'error',
         title: 'Oops...',
-        text: { e },
+        text: `${e.message}`,
       });
     }
   }
-
+  async function clickedDeleteOrUndelete(id, deleteOrUndelete) {
+    try {
+      await axios.post(`/api/tickets/${id}/${deleteOrUndelete}`);
+      loadTicketsArray();
+    } catch (e) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Oops...',
+        text: `${e.message}`,
+      });
+    }
+  }
   return (
     <div className={classes.root}>
       <HeaderBar
@@ -227,6 +163,9 @@ function App() {
             setHideTicketsCounter={setHideTicketsCounter}
             clickedDoneOrUndone={clickedDoneOrUndone}
             call={call}
+            hideTicketsArray={hideTicketsArray}
+            setHideTicketsArray={setHideTicketsArray}
+            clickedDeleteOrUndelete={clickedDeleteOrUndelete}
           />
         ))}
       </main>
